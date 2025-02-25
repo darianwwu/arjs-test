@@ -2,15 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite App</title>
-    <script type="module" crossorigin src="./assets/index-Cu8i9Ig-.js"></script>
+    <script type="module" crossorigin src="/assets/index-D9ZUjDjI.js"></script>
   </head>
   <body>
     <div id="overlay">
       <button id="btnStart">start</button>
     </div>
-    <div id="app"></div>
+    <div id="app">
+      <div id="compass" style="
+        position: absolute; 
+        top: 10px; 
+        left: 50%; 
+        transform: translateX(-50%);
+        font-size: 24px; 
+        background: rgba(0, 0, 0, 0.7); 
+        color: white; 
+        padding: 10px 20px; 
+        border-radius: 10px;">
+        Kompass: 0°
+      </div>
+    </div>
   </body>
 </html>
