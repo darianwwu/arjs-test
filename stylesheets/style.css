@@ -41,19 +41,6 @@ h1 {
   text-align: center;
 }
 
-#distanceDisplay {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 10px 20px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 16px;
-  border-radius: 5px;
-  z-index: 10000;
-}
-
 #distance-overlay {
   position: absolute;
   bottom: 30%; /* Position über dem Pfeil */
@@ -68,6 +55,7 @@ h1 {
   text-align: center;
   z-index: 1000; /* Sicherstellen, dass es über dem Video ist */
 }
+
 /* Kompassanzeige */
 #compassContainer {
   position: fixed;
@@ -86,6 +74,7 @@ h1 {
 #compassArrow {
   font-size: 32px;
   color: white;
+  width: 50%; /* Reduziert die Dicke */
 }
 
 #compassText {
@@ -93,8 +82,13 @@ h1 {
   bottom: 0;
   width: 100%;
   text-align: center;
-  font-size: 12px;
+  font-size: 6px; /* Halbiert die Schriftgröße */
   color: white;
+}
+
+video {
+  width: 100%;
+  height: auto; /* Reduziert die Höhe, sodass es nicht mehr den gesamten Bildschirm einnimmt */
 }
 
 .logo {
