@@ -36,7 +36,6 @@ h1 {
 }
 
 #app {
-  max-width: 1280px;
   margin: 0 auto;
   text-align: center;
 }
@@ -72,7 +71,7 @@ h1 {
 }
 
 #compassArrow {
-  font-size: 32px;
+  font-size: 24px;
   color: white;
   width: 50%; /* Reduziert die Dicke */
 }
@@ -80,15 +79,9 @@ h1 {
 #compassText {
   position: absolute;
   bottom: 0;
-  width: 100%;
   text-align: center;
   font-size: 6px; /* Halbiert die Schriftgröße */
   color: white;
-}
-
-video {
-  width: 100%;
-  height: auto; /* Reduziert die Höhe, sodass es nicht mehr den gesamten Bildschirm einnimmt */
 }
 
 .logo {
