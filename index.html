@@ -8,7 +8,7 @@
     /* CSS für das Distanz-Overlay */
     #distance-overlay {
       position: absolute;
-      bottom: 30%; /* Position über dem Pfeil */
+      bottom: 10%; /* Position unter dem Pfeil */
       left: 50%;
       transform: translateX(-50%);
       font-size: 24px;
@@ -34,20 +34,20 @@
       z-index: 10000;
     }
     #compassArrow {
-      font-size: 30px;
+      font-size: 40px;
       color: white;
     }
 
     #compassText {
       position: absolute;
       bottom: 0;
-      width: 50%;
+      width: 100%;
       text-align: center;
       font-size: 8px;
       color: white;
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-C5e1XcdF.js"></script>
+  <script type="module" crossorigin src="/assets/index-C5e1XcdF.js"></script>
 </head>
 <body>
   <div id="overlay">
@@ -65,8 +65,8 @@
   <!-- Distanzanzeige als Overlay -->
   <div id="distance-overlay">0 m</div>
   <div id="compassContainer">
-    <div id="compassArrow" style="font-size: 48px;">↑</div>
-    <div id="compassText" style="font-size: 24px;"></div>
+    <div id="compassArrow">↑</div>
+    <div id="compassText"></div>
   </div>
   <div id="app"></div>
 </body>
