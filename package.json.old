@@ -4,17 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "build": "vite build",
-    "deploy": "gh-pages -d dist"
+    "dev": "vite dev",
+    "build": "vite build"
   },
   "dependencies": {
-    "locar": "^0.0.6",
+    "locar": "^0.0.2",
     "rollup": "^1.0.4",
     "three": "^0.169.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-basic-ssl": "^1.2.0",
     "vite": "^6.0.11"
   }
 }

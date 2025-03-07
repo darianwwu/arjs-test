@@ -1,6 +1,7 @@
+import basicSsl from '@vitejs/plugin-basic-ssl'
+
 export default {
-    base: '/arjt-test/',
-    server: {
-      host: true,
-    },
-  };
+  plugins: [
+    basicSsl()
+  ]
+}
