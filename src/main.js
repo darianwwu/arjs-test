@@ -1,7 +1,8 @@
 import { AbsoluteDeviceOrientationControls } from './AbsoluteDeviceOrientationControls.js';
 import { THREE } from './AbsoluteDeviceOrientationControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import * as LocAR from 'locar';
+import * as LocAR from './locar/dist/locar.es.js';
+
 
 // Global variables
 var scene, camera, renderer, gltfloader, carModel;
@@ -126,9 +127,9 @@ function updateCompass() {
   if (heading !== null) {
     compassArrow.style.transform = `rotate(${heading}deg)`; // Pfeil drehen
     compassText.innerText = `${Math.round(heading)}°`; // Text aktualisieren
+    //console.log("Tatsächliche Ausrichtung: " + heading);
   }
 }
-
 
 // Berechnet die Entfernung zwischen zwei GPS-Koordinaten in Metern
 function computeDistance(lat1, lon1, lat2, lon2) {
@@ -146,41 +147,23 @@ function computeDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Berechnet den Bearing (Richtungswinkel) zum Ziel
-function computeBearing(lat1, lon1, lat2, lon2) {
-  let φ1 = THREE.MathUtils.degToRad(lat1);
-  let φ2 = THREE.MathUtils.degToRad(lat2);
-  let Δλ = THREE.MathUtils.degToRad(lon2 - lon1);
-  let y = Math.sin(Δλ) * Math.cos(φ2);
-  let x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  return Math.atan2(y, x);
-}
-
 // Aktualisiert die Richtung des Pfeils
 function updateArrow() {
+  
   if (!carModel || currentCoords.longitude === null || currentCoords.latitude === null) {
     return;
   }
-  
-  let bearing = computeBearing(
-    currentCoords.latitude,
-    currentCoords.longitude, 
-    targetCoords.latitude, 
-    targetCoords.longitude
-  );
-
-  let forward = new THREE.Vector3(0, 0, -1);
-  forward.applyQuaternion(camera.quaternion);
-  forward.y = 0;
-  forward.normalize();
-  let deviceHeading = Math.atan2(forward.x, forward.z) - Math.PI;
-
-  let relativeAngle = bearing - deviceHeading;
-
-  // Offset von 90 Grad (PI/2 im Bogenmaß)
-  carModel.rotation.set(0, -(relativeAngle - Math.PI / 2), 0);
+  //carModel.setWorldPosition(currentCoords.longitude, currentCoords.latitude, 1.5);
+  var lonlattoworld = locar.lonLatToWorldCoords(targetCoords.longitude, targetCoords.latitude);
+  console.log("Zielkoordinaten: " , lonlattoworld);
+  var ausrichtungsvektor = new THREE.Vector3(-lonlattoworld[0], 1.5, -lonlattoworld[1]);
+  console.log("ausrichtungsvektor:" , ausrichtungsvektor);
+  console.log("Kameraposition:" , camera.position);
+  var kopiervektor = new THREE.Vector3();
+  carModel.getWorldPosition(kopiervektor);
+  console.log("Weltposition Pfeil: ", carModel.getWorldPosition(kopiervektor));
+  carModel.lookAt(ausrichtungsvektor);
 }
-
 
 // Aktualisiert die Distanzanzeige
 function updateDistance() {
