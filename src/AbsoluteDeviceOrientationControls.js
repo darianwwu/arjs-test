@@ -7,7 +7,7 @@
  * for calling this.connect()
 **/
 import * as THREE from 'three';
-const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i)
+export const isIOS = navigator.userAgent.match(/iPhone|iPad|iPod/i)
 
 /**
  * Module to calculate and apply the rotation towards the Earth's central axis to the registered target (ThreeJS camera)

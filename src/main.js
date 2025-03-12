@@ -1,39 +1,31 @@
-import { AbsoluteDeviceOrientationControls } from './AbsoluteDeviceOrientationControls.js';
+import { AbsoluteDeviceOrientationControls, isIOS } from './AbsoluteDeviceOrientationControls.js';
 import { THREE } from './AbsoluteDeviceOrientationControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as LocAR from './locar/dist/locar.es.js';
 
-
 // Global variables
-var scene, camera, renderer, gltfloader, carModel;
+var scene, camera, renderer, gltfloader, pfeilARObjekt, zielmarkerARObjekt;
 var locar, cam, absoluteDeviceOrientationControls;
-var box, cube1, markerSprite;
 
-var targetCoords = {
-  longitude: 7.650252,
-  latitude: 51.934518
-};
+var targetCoords = { longitude: 7.651058, latitude: 51.935260 }; // Zielkoordinaten
+var currentCoords = { longitude: null, latitude: null }; // Nutzerkoordinaten
 
-var currentCoords = {
-  longitude: null,
-  latitude: null
-};
-
-const lonInput = document.getElementById("longitude");
-const latInput = document.getElementById("latitude");
+const lonInput = document.getElementById("longitude"); // HTML-Inputfeld für Längengrad
+const latInput = document.getElementById("latitude"); // HTML-Inputfeld für Breitengrad
 const distanceOverlay = document.getElementById("distance-overlay"); // HTML-Distanzanzeige
+const compassArrow = document.getElementById("compassArrow"); // Kompass-Pfeil
+const compassText = document.getElementById("compassText");// Kompass-Text
 
-// Im Overlay definierte Elemente werden in index.html existieren:
-const compassContainer = document.getElementById("compassContainer");
-const compassArrow = document.getElementById("compassArrow");
-const compassText = document.getElementById("compassText");
-
+/**
+ * Onload-Event: Wartet bis die Seite geladen ist, um die Initialisierung zu starten
+ * Integriert: Eventlistener für Start-Button, der die init() Funktion aufruft
+ */
 window.onload = () => {
   console.log("page loaded, proceed to init");
   const overlay = document.getElementById("overlay");
   const startBtn = document.getElementById("btnStart");
   const lonLatInput = document.getElementById("lonlatinput");
-  
+
   startBtn.addEventListener('click', () => {
     targetCoords.longitude = parseFloat(lonInput.value);
     targetCoords.latitude = parseFloat(latInput.value);
@@ -43,6 +35,11 @@ window.onload = () => {
   });
 };
 
+/**
+ * Initialisiert die Szene, Kamera, Renderer und LocAR
+ * Setzt erstmalig alle AR Objekte und startet den Animation Loop
+ * Integriert: Zentraler Event-Listener von LocAR für GPS-Updates
+ */
 function init() {
   scene = new THREE.Scene();
 
@@ -52,11 +49,11 @@ function init() {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(1, 1, 1);
   scene.add(directionalLight);
-  
+
   // Kamera und Renderer
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.001, 500);
   scene.add(camera);
-  
+
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -77,30 +74,34 @@ function init() {
   gltfloader = new GLTFLoader();
 
   locar.on("gpsupdate", (pos, distMoved) => {
+    // Bei jedem GPS-Update aktuelle Nutzerdaten setzen
+    currentCoords.longitude = pos.coords.longitude;
+    currentCoords.latitude = pos.coords.latitude;
+    console.log("GPS Update: ", currentCoords);
     if (firstLocation) {
+      // Marker-Objekt erstellen (einmalig)
       const textureLoader = new THREE.TextureLoader();
       const markerTexture = textureLoader.load('./images/map-marker.png');
       const markerMaterial = new THREE.SpriteMaterial({ map: markerTexture });
-      markerSprite = new THREE.Sprite(markerMaterial);
-      markerSprite.scale.set(5, 5, 1);
-      locar.add(markerSprite, targetCoords.longitude, targetCoords.latitude);
-      
-      // GLTF-Modell laden
+      zielmarkerARObjekt = new THREE.Sprite(markerMaterial);
+      zielmarkerARObjekt.scale.set(5, 5, 1);
+      locar.add(zielmarkerARObjekt, targetCoords.longitude, targetCoords.latitude);
+
+      // Initialen Pfeil laden (einmalig)
       gltfloader.load('./car-arrow-glb/source/carArrow.glb', function (gltf) {
-        carModel = gltf.scene;
-        carModel.scale.set(0.3, 0.3, 0.3);
-        carModel.traverse(child => child.frustumCulled = false);
-        camera.add(carModel);
-        carModel.position.set(0, -1, -3);
+        pfeilARObjekt = gltf.scene;
+        pfeilARObjekt.scale.set(0.3, 0.3, 0.3);
+        pfeilARObjekt.traverse(child => child.frustumCulled = false);
+        camera.add(pfeilARObjekt);
+        pfeilARObjekt.position.set(0, -1, -3);
         updateArrow();
       });
 
       firstLocation = false;
+    } else {
+      // Nach erster Initialisierung: nicht neu laden, nur Rotation, Position aktualisieren.
+      updateArrow();
     }
-    currentCoords.longitude = pos.coords.longitude;
-    currentCoords.latitude = pos.coords.latitude;
-    
-    updateArrow();
     updateDistance();
   });
 
@@ -108,6 +109,9 @@ function init() {
   renderer.setAnimationLoop(animate);
 }
 
+/**
+ * Zentraler Loop der Animation
+ */
 function animate() {
   updateArrow();
   updateDistance();
@@ -117,23 +121,34 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Aktualisiert die Kompass-Anzeige basierend auf der Geräteausrichtung
+/**
+ * Aktualisiert das Kompass GUI
+ * @returns null, wenn keine Geräteorientierung vorhanden ist
+ */
 function updateCompass() {
   if (!absoluteDeviceOrientationControls.deviceOrientation) return;
 
-  let heading = absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading || 
-                absoluteDeviceOrientationControls.getAlpha() * (180 / Math.PI); // iOS Fix
+  let heading = absoluteDeviceOrientationControls.getAlpha() * (180 / Math.PI);
+  if (isIOS && absoluteDeviceOrientationControls.deviceOrientation?.webkitCompassHeading) {
+    heading = 360 - absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading;
+  }  
 
   if (heading !== null) {
-    compassArrow.style.transform = `rotate(${heading}deg)`; // Pfeil drehen
-    compassText.innerText = `${Math.round(heading)}°`; // Text aktualisieren
-    //console.log("Tatsächliche Ausrichtung: " + heading);
+    compassArrow.style.transform = `rotate(${heading}deg)`;
+    compassText.innerText = `${Math.round(heading)}°`;
   }
 }
 
-// Berechnet die Entfernung zwischen zwei GPS-Koordinaten in Metern
+/**
+ * Berechnet die Distanz zwischen zwei Punkten auf der Erde
+ * @param {*} lat1 Latitude Punkt 1
+ * @param {*} lon1 Longitude Punkt 1
+ * @param {*} lat2 Latitude Punkt 2
+ * @param {*} lon2 Longitude Punkt 2
+ * @returns Distanz in Metern
+ */
 function computeDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // Erdradius in Metern
+  const R = 6371000;
   const φ1 = THREE.MathUtils.degToRad(lat1);
   const φ2 = THREE.MathUtils.degToRad(lat2);
   const Δφ = THREE.MathUtils.degToRad(lat2 - lat1);
@@ -147,25 +162,52 @@ function computeDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Aktualisiert die Richtung des Pfeils
+/**
+ * Aktualisiert die Pfeilrotation des glb Modells
+ * @returns null, falls keine Koordinaten gesetzt sind
+ */
 function updateArrow() {
-  
-  if (!carModel || currentCoords.longitude === null || currentCoords.latitude === null) {
+  if (!pfeilARObjekt || currentCoords.longitude === null || currentCoords.latitude === null) {
     return;
   }
-  //carModel.setWorldPosition(currentCoords.longitude, currentCoords.latitude, 1.5);
-  var lonlattoworld = locar.lonLatToWorldCoords(targetCoords.longitude, targetCoords.latitude);
-  console.log("Zielkoordinaten: " , lonlattoworld);
-  var ausrichtungsvektor = new THREE.Vector3(-lonlattoworld[0], 1.5, -lonlattoworld[1]);
-  console.log("ausrichtungsvektor:" , ausrichtungsvektor);
-  console.log("Kameraposition:" , camera.position);
-  var kopiervektor = new THREE.Vector3();
-  carModel.getWorldPosition(kopiervektor);
-  console.log("Weltposition Pfeil: ", carModel.getWorldPosition(kopiervektor));
-  carModel.lookAt(ausrichtungsvektor);
+  
+  // Berechne den Zielstandort in Weltkoordinaten (x und z aus lonLatToWorldCoords, y konstant)
+  var lonlattoworldTarget = locar.lonLatToWorldCoords(targetCoords.longitude, targetCoords.latitude);
+  var targetWorldPos = new THREE.Vector3(lonlattoworldTarget[0], 1.5, lonlattoworldTarget[1]);
+  
+  // Berechne den Nutzerstandort in Weltkoordinaten
+  var lonlattoworldUser = locar.lonLatToWorldCoords(currentCoords.longitude, currentCoords.latitude);
+  var userWorldPos = new THREE.Vector3(lonlattoworldUser[0], 1.5, lonlattoworldUser[1]);
+  
+  // Berechne den Vektor vom Nutzer zum Ziel
+  var direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
+  
+  // Berechne den Winkel (phi) des Vektors in der horizontalen Ebene
+  var targetAngle = Math.atan2(direction.x, direction.z);
+  
+  // Hole die Nutzerausrichtung aus der Geräteorientierung (Kompasswert in Grad) und konvertiere in Bogenmaß
+  var headingDegrees = absoluteDeviceOrientationControls.deviceOrientation ?
+      (absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading || 
+       absoluteDeviceOrientationControls.getAlpha() * (180 / Math.PI)) : 0;
+  var userHeading = THREE.MathUtils.degToRad(headingDegrees);
+  
+  // Berechne den relativen Winkel: wie stark weicht der Winkel zum Ziel von der aktuellen Nutzerausrichtung ab?
+  let relativeAngle = targetAngle - userHeading;
+
+  if (isIOS) {
+      relativeAngle = -relativeAngle; // iOS rotiert anders
+      //relativeAngle += Math.PI / 2; // iOS braucht einen 90° Offset
+  } else {
+      relativeAngle += Math.PI; // Android braucht einen 180° Offset
+  }
+
+  pfeilARObjekt.rotation.set(0, relativeAngle, 0);
 }
 
-// Aktualisiert die Distanzanzeige
+/**
+ * Aktualisiert die Distanzanzeige
+ * @returns null, falls keine Koordinaten gesetzt sind
+ */
 function updateDistance() {
   if (currentCoords.longitude === null || currentCoords.latitude === null) return;
   const distance = computeDistance(currentCoords.latitude, currentCoords.longitude, targetCoords.latitude, targetCoords.longitude);
