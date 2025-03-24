@@ -66,7 +66,7 @@ function init() {
   });
 
   // LocAR initialisieren
-  locar = new LocAR.LocationBased(scene, camera);
+  locar = new LocAR.LocationBased(scene, camera, { gpsMinDistance: 1});
   cam = new LocAR.WebcamRenderer(renderer);
   absoluteDeviceOrientationControls = new AbsoluteDeviceOrientationControls(camera);
 
@@ -88,7 +88,7 @@ function init() {
       locar.add(zielmarkerARObjekt, targetCoords.longitude, targetCoords.latitude);
 
       // Initialen Pfeil laden (einmalig)
-      gltfloader.load('./car-arrow-glb/source/carArrow.glb', function (gltf) {
+      gltfloader.load('./glbmodell/Pfeil5.glb', function (gltf) {
         pfeilARObjekt = gltf.scene;
         pfeilARObjekt.scale.set(0.3, 0.3, 0.3);
         pfeilARObjekt.traverse(child => child.frustumCulled = false);
@@ -171,37 +171,44 @@ function updateArrow() {
     return;
   }
   
-  // Berechne den Zielstandort in Weltkoordinaten (x und z aus lonLatToWorldCoords, y konstant)
-  var lonlattoworldTarget = locar.lonLatToWorldCoords(targetCoords.longitude, targetCoords.latitude);
-  var targetWorldPos = new THREE.Vector3(lonlattoworldTarget[0], 1.5, lonlattoworldTarget[1]);
+  // Zielstandort in Weltkoordinaten (x, z von lonLatToWorldCoords; y konstant 1.5)
+  const lonlatTarget = locar.lonLatToWorldCoords(targetCoords.longitude, targetCoords.latitude);
+  const targetWorldPos = new THREE.Vector3(lonlatTarget[0], 1.5, lonlatTarget[1]);
   
-  // Berechne den Nutzerstandort in Weltkoordinaten
-  var lonlattoworldUser = locar.lonLatToWorldCoords(currentCoords.longitude, currentCoords.latitude);
-  var userWorldPos = new THREE.Vector3(lonlattoworldUser[0], 1.5, lonlattoworldUser[1]);
+  // Nutzerstandort in Weltkoordinaten (x, z; y konstant 1.5)
+  const lonlatUser = locar.lonLatToWorldCoords(currentCoords.longitude, currentCoords.latitude);
+  const userWorldPos = new THREE.Vector3(lonlatUser[0], 1.5, lonlatUser[1]);
   
-  // Berechne den Vektor vom Nutzer zum Ziel
-  var direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
+  // Vektor vom Nutzer zum Ziel
+  const direction = new THREE.Vector3().subVectors(targetWorldPos, userWorldPos);
   
-  // Berechne den Winkel (phi) des Vektors in der horizontalen Ebene
-  var targetAngle = Math.atan2(direction.x, direction.z);
+  // Bestimme den Winkel (in Radianten) des Richtungsvektors in der horizontalen Ebene
+  const targetAngle = Math.atan2(direction.x, direction.z);
   
-  // Hole die Nutzerausrichtung aus der Geräteorientierung (Kompasswert in Grad) und konvertiere in Bogenmaß
-  var headingDegrees = absoluteDeviceOrientationControls.deviceOrientation ?
-      (absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading || 
-       absoluteDeviceOrientationControls.getAlpha() * (180 / Math.PI)) : 0;
-  var userHeading = THREE.MathUtils.degToRad(headingDegrees);
+  // Nutzer-Heading (in Radianten) über getAlpha() – dieser Wert ist für beide Plattformen konsistent
+  const userHeading = absoluteDeviceOrientationControls.getAlpha();
   
-  // Berechne den relativen Winkel: wie stark weicht der Winkel zum Ziel von der aktuellen Nutzerausrichtung ab?
+  // Berechne den relativen Winkel
   let relativeAngle = targetAngle - userHeading;
-
-  if (isIOS) {
-      relativeAngle = -relativeAngle; // iOS rotiert anders
-      //relativeAngle += Math.PI / 2; // iOS braucht einen 90° Offset
-  } else {
-      relativeAngle += Math.PI; // Android braucht einen 180° Offset
-  }
-
+  
+  // Korrigiere auf iOS: wenn der Pfeil um 180° falsch ist, addiere π
+  //if (isIOS) {
+    relativeAngle += Math.PI;
+  //}
+  
+  // Normiere den Winkel auf den Bereich -π ... π (optional)
+  relativeAngle = ((relativeAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+  
+  // Setze die Rotation des Pfeils (nur um die Y-Achse)
   pfeilARObjekt.rotation.set(0, relativeAngle, 0);
+  
+  // Debug-Ausgaben
+  console.log("UserWorldPos:", userWorldPos);
+  console.log("TargetWorldPos:", targetWorldPos);
+  console.log("Direction:", direction);
+  console.log("Target angle (rad):", targetAngle);
+  console.log("User heading (rad, getAlpha):", userHeading);
+  console.log("Relative angle (rad):", relativeAngle);
 }
 
 /**
