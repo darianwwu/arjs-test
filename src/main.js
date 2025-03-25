@@ -130,11 +130,14 @@ function updateCompass() {
 
   let heading = absoluteDeviceOrientationControls.getAlpha() * (180 / Math.PI);
   if (isIOS && absoluteDeviceOrientationControls.deviceOrientation?.webkitCompassHeading) {
-    heading = 360 - absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading;
+    heading = absoluteDeviceOrientationControls.deviceOrientation.webkitCompassHeading; // Korrektur
   }  
 
+  // Normalisieren auf 0-360 Grad
+  heading = (heading + 360) % 360;
+
   if (heading !== null) {
-    compassArrow.style.transform = `rotate(${heading}deg)`;
+    compassArrow.style.transform = `rotate(${-heading}deg)`; // Invertiere Drehung
     compassText.innerText = `${Math.round(heading)}°`;
   }
 }
